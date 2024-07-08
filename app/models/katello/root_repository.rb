@@ -115,6 +115,8 @@ module Katello
       }
 
     validates :container_push_name_format, inclusion: { in: ['label', 'id'].freeze, allow_nil: true}
+    
+    before_update :prevent_updates, :unless => :allow_updates?
 
     scope :subscribable, -> { where(content_type: RootRepository::SUBSCRIBABLE_TYPES) }
     scope :skipable_metadata_check, -> { where(content_type: RootRepository::SKIPABLE_METADATA_TYPES) }
@@ -453,6 +455,18 @@ module Katello
       else
         self.arch == "noarch" ? nil : self.arch
       end
+    end
+
+    def allow_updates?
+      # Allow updates for non-container-push repos and for updating exclusively the allow_updates flag
+      return true if allow_updates
+      return true if changed.size == 2 && will_save_change_to_allow_updates?
+      false
+    end
+
+    def prevent_updates
+      errors.add(:base, "Cannot update container push repositories")
+      throw(:abort)
     end
 
     apipie :class, desc: 'A class representing Repository object' do

@@ -119,6 +119,8 @@ module Katello
 
     before_validation :set_pulp_id
     before_validation :set_container_repository_name, :unless => :skip_container_name?
+    
+    before_update :prevent_updates, :unless => :allow_updates?
 
     scope :has_url, -> { joins(:root).where.not("#{RootRepository.table_name}.url" => nil) }
     scope :on_demand, -> { joins(:root).where("#{RootRepository.table_name}.download_policy" => ::Katello::RootRepository::DOWNLOAD_ON_DEMAND) }
@@ -1046,6 +1048,14 @@ module Katello
         manifest.destroy
       end
       DockerMetaTag.cleanup_tags
+    end
+
+    def allow_updates?
+      root.allow_updates
+    end
+
+    def prevent_updates
+      root.prevent_updates
     end
 
     apipie :class, desc: "A class representing #{model_name.human} object" do

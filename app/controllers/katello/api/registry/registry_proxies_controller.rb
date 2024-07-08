@@ -371,12 +371,24 @@ module Katello
         )
       end
 
+      enable_container_push_repo_update(root_repo)
+
       instance_repo.update!(version_href: latest_version_href)
       ::Katello::Pulp3::RepositoryReference.where(root_repository_id: instance_repo.root_id,
         content_view_id: instance_repo.content_view.id, repository_href: pulp_href).create!
       instance_repo.index_content
 
+      disable_container_push_repo_update(root_repo)
+
       true
+    end
+
+    def enable_container_push_repo_update(root_repo)
+      root_repo.update!(allow_updates: true)
+    end
+
+    def disable_container_push_repo_update(root_repo)
+      root_repo.update!(allow_updates: false)
     end
 
     def find_writable_repository
