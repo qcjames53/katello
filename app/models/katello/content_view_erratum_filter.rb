@@ -4,7 +4,8 @@ module Katello
 
     ERRATA_TYPES = { 'bugfix' => _('Bug Fix'),
                      'enhancement' => _('Enhancement'),
-                     'security' => _('Security') }.with_indifferent_access
+                     'security' => _('Security'),
+                     'other' => _('Other') }.with_indifferent_access
 
     has_many :erratum_rules, :dependent => :destroy, :foreign_key => :content_view_filter_id,
                              :class_name => "Katello::ContentViewErratumFilterRule"
@@ -94,7 +95,14 @@ module Katello
     def types_clause
       types = erratum_rules.first.types
       return if types.blank?
-      errata_types_in(types)
+
+      conditions = []
+      valid_types = Erratum::TYPES.reject { |type| type == "other" }
+      conditions << errata_types_in(types.reject { |type| type == "other" })
+      conditions << errata_types_not_in(valid_types) if types.include?("other")
+      conditions.reduce(nil) do |combined_clause, condition|
+        combined_clause ? combined_clause.or(condition) : condition
+      end
     end
 
     def filter_by_id?
@@ -103,6 +111,10 @@ module Katello
 
     def errata_types_in(types)
       erratum_arel[:errata_type].in(types)
+    end
+
+    def errata_types_not_in(types)
+      erratum_arel[:errata_type].not_in(types)
     end
 
     def errata_in(ids)
