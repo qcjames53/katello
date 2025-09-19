@@ -574,7 +574,7 @@ module Katello
       return yield
     rescue RestClient::Exception => exception
       if [301, 302, 307].include?(exception.response.code)
-        redirect_to exception.response.headers[:location]
+        redirect_to exception.response.headers[:location], allow_other_host: true
         nil
       else
         raise exception
